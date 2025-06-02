@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<meta charset="UTF-8">
+	<title>LnoteEditor</title>
+	<style lang="css">
+		body {
+			font-family: sans-serif;
+			padding: 1em;
+			margin: 0 !important;
+			padding: 0 20px 0 20px !important;
+		}
+
+		img {
+			max-width: 40vw;
+		}
+
+		.page_title {
+			margin: 0px !important;
+			padding: 0px !important;
+		}
+
+		#note_title {
+			font-size: 30px;
+			border-top: 0px;
+			border-left: 0px;
+			border-right: 0px;
+			width: calc(40vw + 40vw);
+		}
+
+		#note_editor {
+			width: 40vw;
+			height: 80vh;
+		}
+
+		#note_preview {
+			text-align: start;
+			width: 40vw;
+			height: 80vh;
+		}
+		.hash_tag {
+			color: mediumaquamarine;
+		}
+
+
+		#save_button {}
+	</style>
+</head>
+
+<body>
+	<h1 class="page_title">ノート編集</h1>
+	<input id="note_title" type="text" placeholder="タイトル">
+	<table>
+		<tr>
+			<th>本文</th>
+			<th>プレビュー</th>
+		</tr>
+		<tr>
+			<td>
+				<div>
+					<textarea id="note_editor" placeholder="ここに本文を書いてください（ファイル/画像貼り付けOK）"></textarea>
+				</div>
+			</td>
+			<td>
+				<div>
+					<div id="note_preview"></div>
+				</div>
+			</td>
+		</tr>
+	</table>
+
+
+	<button id="save_button">保存</button>
+
+	<script>
+		const note_title = document.getElementById('note_title');
+		const note_editor = document.getElementById('note_editor');
+		const note_preview = document.getElementById('note_preview');
+		const save_button = document.getElementById('save_button');
+
+		const link_pattern = new RegExp([
+			// 1. URL (http or https)
+			`(https?:\\/\\/[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)`,
+
+			// 2. Windowsパス (C:\Path\To\file.txt)
+			`([a-zA-Z]:\\\\(?:[^\\s"'<>()])+?)`,
+
+			// 3. UNIX風パス (/home/user/file or ./file)
+			`(\\.{0,2}\\/[^\\s"'<>()]+)`,
+
+			// 4. ネットワークドライブ (\\server\share\path)
+			`(\\\\\\\\[\\w.-]+\\\\[\\w\\-._~\\/\\\\]+)`
+		].join('|'), 'g');
+		const hash_tag_pattern = new RegExp([
+			`#[^\\s]+`,
+		].join('|'), 'g');
+
+		const note_data_model = {
+			id: "",
+			title: "",
+			content: "",
+			title_is_set: false,
+
+			title_element: null,
+			note_editor_element: null,
+			note_preview_element: null,
+
+			attached_content_html_for_preview: "",
+			attached_urls: [
+			],
+			attached_hash_tags: [
+			],
+			attached_files: [
+			],
+
+			get_id: function () {
+				return this.id;
+			},
+			get_title: function () {
+				if (this.title_is_set) {
+					this.title
+				}
+				if (!this.content || this.content === "") {
+					return "";
+				}
+				const content_splited_line = ((this.content ? this.content : "")).split("\n");
+				return line1
+			},
+			get_content: function () {
+				return this.content;
+			},
+
+			update_model_value_from_element: function () {
+				this.title = this.title_element.value.toString();
+				this.content = new String(this.note_editor_element.value)
+			},
+			resolve_title: function () {
+				if (this.title_is_set) {
+					this.title_element.value = this.title
+					return
+				}
+				const content_splited_line = this.content.split("\n");
+				const line1 = (content_splited_line.length !== 0) ? content_splited_line[0] : null
+				if (line1 !== null) {
+					this.title_element.value = line1
+				}
+			},
+			update_note_preview: function () {
+				this.update_model_value_from_element()
+				this.parse_attached_content_html_for_preview()
+			},
+			parse_attached_content_html_for_preview: function () {
+				const lines = this.content.split("\n");
+				// 改行対応
+				for (let i = 0; i < lines.length; i++) {
+					lines[i] = lines[i].concat("<br>");
+				}
+				// リンク置換対応
+				for (let i = 0; i < lines.length; i++) {
+					const link_matches = lines[i].match(link_pattern);
+					if (!link_matches) {
+						continue;
+					}
+					for (let j = 0; j < link_matches.length; j++) {
+						lines[i] = lines[i].replace(link_matches[j], '<a href="' + link_matches[j] + '">' + link_matches[j] + '</a>')
+					}
+				}
+				// ハッシュタグ置換対応
+				for (let i = 0; i < lines.length; i++) {
+					const hash_tag_matches = lines[i].match(hash_tag_pattern);
+					if (!hash_tag_matches) {
+						continue;
+					}
+					for (let j = 0; j < hash_tag_matches.length; j++) {
+						lines[i] = lines[i].replace(hash_tag_matches[j], '<span class="hash_tag">' + hash_tag_matches[j] + '</span>')
+					}
+				}
+
+
+				const content_html_for_preview = lines.join("\n");
+				this.attached_content_html_for_preview = content_html_for_preview;
+				this.note_preview_element.innerHTML = this.attached_content_html_for_preview;
+			},
+			parse_attached_urls: function () {
+				//TODO
+			},
+			parse_attached_hash_tags: function () {
+				//TODO
+			},
+			parse_attached_files: function () {
+				//TODO
+			},
+			update_view: function () {
+				this.resolve_title()
+				this.update_note_preview()
+			},
+			init: function (title_element, note_editor_element, note_preview_element,
+				id, title, content) {
+				this.title_element = title_element;
+				this.note_editor_element = note_editor_element;
+				this.note_preview_element = note_preview_element;
+
+				this.id = id;
+				this.title = title;
+				this.content = content;
+				this.title_is_set = title !== null && title !== "";
+				note_editor_element.addEventListener('keyup', () => this.update_view())
+
+			},
+		}
+
+		note_data_model.init(note_title, note_editor, note_preview, "", null, "");
+		note_data_model.update_view()
+
+		function upload_file(file) {
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				const src = e.target.result;
+				const img = document.createElement('img');
+				img.src = src;
+				preview.appendChild(img);
+				imageList.push({name: file.name, dataUrl: src});
+				textarea.value += `\n < p > <img src="${src}" alt="${file.name}"></p>\n`;
+			};
+			reader.readAsDataURL(file);
+		}
+
+		// Ctrl+V 画像貼り付け対応
+		note_editor.addEventListener('paste', (e) => {
+			const items = e.clipboardData.items;
+			for (const item of items) {
+				upload_file(item.getAsFile());
+			}
+		});
+
+		// D&D対応
+		note_editor.addEventListener('dragover', (e) => e.preventDefault());
+		note_editor.addEventListener('drop', (e) => {
+			e.preventDefault();
+			for (const file of e.dataTransfer.files) {
+				upload_file(file);
+			}
+		});
+
+		// 保存ボタン
+		save_button.addEventListener('click', () => {
+			const lines = textarea.value.trim().split('\n');
+			const title = lines[0] || '無題';
+			const body = textarea.value;
+			console.log('[保存]', {title, body, imageList});
+			alert('保存内容は console に出力しました！（あとでServlet連携）');
+		});
+	</script>
+
+</body>
+
+</html>
